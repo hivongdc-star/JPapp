@@ -20,32 +20,54 @@ class GamePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Container(
+    final panel = Container(
       decoration: BoxDecoration(
         color: gradient == null ? AppColors.panel : null,
         gradient: gradient,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: borderColor ?? AppColors.borderSoft),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
-            blurRadius: 18,
-            offset: Offset(0, 8),
+            blurRadius: 24,
+            offset: Offset(0, 10),
           ),
         ],
       ),
-      padding: padding,
-      child: child,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.12),
+                    Colors.white.withOpacity(0.02),
+                  ],
+                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+              ),
+            ),
+          ),
+          Padding(padding: padding, child: child),
+        ],
+      ),
     );
 
-    if (onTap == null) return content;
+    if (onTap == null) {
+      return panel;
+    }
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        borderRadius: BorderRadius.circular(22),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: content,
+        child: panel,
       ),
     );
   }
