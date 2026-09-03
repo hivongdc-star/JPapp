@@ -12,57 +12,95 @@ class SettingsScene extends StatefulWidget {
 }
 
 class _SettingsSceneState extends State<SettingsScene> {
-  bool _reviewReminder = true;
-  bool _furigana = false;
-  bool _autoAudio = true;
+  int _section = 0;
+  bool _reviewReminder = false;
+  bool _autoAudio = false;
+  bool _furiganaSmart = true;
+  bool _dailyGoal = true;
+
+  static const _sections = [
+    (Icons.person_rounded, 'Tài khoản'),
+    (Icons.school_rounded, 'Học tập'),
+    (Icons.graphic_eq_rounded, 'Âm thanh & Giọng nói'),
+    (Icons.palette_rounded, 'Giao diện'),
+    (Icons.notifications_active_rounded, 'Thông báo'),
+    (Icons.download_rounded, 'Dữ liệu & Tải xuống'),
+    (Icons.language_rounded, 'Ngôn ngữ'),
+    (Icons.lock_rounded, 'Quyền riêng tư'),
+    (Icons.info_rounded, 'Giới thiệu'),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return SceneScaffold(
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: ListView(
-            children: [
-              const Text('Cài đặt', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 16),
-              const _AccountCard(),
-              const SizedBox(height: 14),
-              const _AccountStats(),
-              const SizedBox(height: 14),
-              GamePanel(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          constraints: const BoxConstraints(maxWidth: 1240),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final useSidebar = constraints.maxWidth >= 980;
+              final content = ListView(
+                children: [
+                  const _AccountHeader(),
+                  const SizedBox(height: 16),
+                  const _AccountStatsPanel(),
+                  const SizedBox(height: 16),
+                  _QuickSettingsGrid(
+                    dailyGoal: _dailyGoal,
+                    reviewReminder: _reviewReminder,
+                    autoAudio: _autoAudio,
+                    furiganaSmart: _furiganaSmart,
+                    onDailyGoalChanged: (value) => setState(() => _dailyGoal = value),
+                    onReviewReminderChanged: (value) => setState(() => _reviewReminder = value),
+                    onAutoAudioChanged: (value) => setState(() => _autoAudio = value),
+                    onFuriganaSmartChanged: (value) => setState(() => _furiganaSmart = value),
+                  ),
+                ],
+              );
+
+              if (!useSidebar) {
+                return Column(
                   children: [
-                    const Text('THIẾT LẬP NHANH', style: TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 10),
-                    _ToggleTile(
-                      icon: Icons.notifications_active_rounded,
-                      title: 'Nhắc nhở ôn tập',
-                      subtitle: 'Nhắc khi review queue đến hạn',
-                      value: _reviewReminder,
-                      onChanged: (value) => setState(() => _reviewReminder = value),
+                    SizedBox(
+                      height: 44,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemBuilder: (context, index) {
+                          final selected = _section == index;
+                          return ChoiceChip(
+                            selected: selected,
+                            label: Text(_sections[index].$2),
+                            onSelected: (_) => setState(() => _section = index),
+                            selectedColor: AppColors.purple.withOpacity(0.22),
+                            side: BorderSide(color: selected ? AppColors.purple : AppColors.borderSoft),
+                            labelStyle: TextStyle(color: selected ? AppColors.purpleBright : AppColors.textMuted, fontWeight: FontWeight.w700),
+                          );
+                        },
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemCount: _sections.length,
+                      ),
                     ),
-                    _ToggleTile(
-                      icon: Icons.graphic_eq_rounded,
-                      title: 'Tự động phát audio',
-                      subtitle: 'Phát audio khi mở bài Listening',
-                      value: _autoAudio,
-                      onChanged: (value) => setState(() => _autoAudio = value),
-                    ),
-                    _ToggleTile(
-                      icon: Icons.translate_rounded,
-                      title: 'Hiển thị Furigana',
-                      subtitle: 'Mặc định ẩn để tránh phụ thuộc cách đọc',
-                      value: _furigana,
-                      onChanged: (value) => setState(() => _furigana = value),
-                    ),
+                    const SizedBox(height: 16),
+                    Expanded(child: content),
                   ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              const _SettingsMenu(),
-            ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 240,
+                    child: _SettingsSidebar(
+                      selectedIndex: _section,
+                      onSelect: (index) => setState(() => _section = index),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(child: content),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -70,53 +108,119 @@ class _SettingsSceneState extends State<SettingsScene> {
   }
 }
 
-class _AccountCard extends StatelessWidget {
-  const _AccountCard();
+class _SettingsSidebar extends StatelessWidget {
+  const _SettingsSidebar({required this.selectedIndex, required this.onSelect});
+
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    const avatar = _SettingsAvatar();
-    const identity = Expanded(
+    return GamePanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Hikari', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-          SizedBox(height: 4),
-          Text('hikari.jp@example.com', style: TextStyle(color: AppColors.textMuted)),
-          SizedBox(height: 6),
-          Row(
-            children: [
-              Icon(Icons.workspace_premium_rounded, color: AppColors.gold, size: 18),
-              SizedBox(width: 5),
-              Text('Diamond League', style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ],
+        children: List.generate(_SettingsSceneState._sections.length, (index) {
+          final item = _SettingsSceneState._sections[index];
+          final selected = index == selectedIndex;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: InkWell(
+              onTap: () => onSelect(index),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.purple.withOpacity(0.18) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: selected ? AppColors.purple : Colors.transparent),
+                ),
+                child: Row(
+                  children: [
+                    Icon(item.$1, color: selected ? AppColors.purpleBright : AppColors.textMuted),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        item.$2,
+                        style: TextStyle(
+                          color: selected ? AppColors.text : AppColors.textMuted,
+                          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
+  }
+}
 
+class _AccountHeader extends StatelessWidget {
+  const _AccountHeader();
+
+  @override
+  Widget build(BuildContext context) {
     return GamePanel(
-      gradient: const LinearGradient(colors: [Color(0xFF121E36), Color(0xFF0C172B)]),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF111B36), Color(0xFF0A1223)],
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 520) {
+          final narrow = constraints.maxWidth < 640;
+          final profile = Row(
+            children: [
+              const _ProfileAvatar(),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Row(
+                      children: [
+                        Text('Hikari', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                        SizedBox(width: 6),
+                        Icon(Icons.edit_rounded, color: AppColors.textMuted, size: 15),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text('hikari.jp@example.com', style: TextStyle(color: AppColors.textMuted)),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.workspace_premium_rounded, color: AppColors.gold, size: 18),
+                        SizedBox(width: 6),
+                        Text('Thành viên Pro', style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          final action = OutlinedButton(onPressed: () {}, child: const Text('Quản lý'));
+
+          if (narrow) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Row(children: [avatar, SizedBox(width: 16), identity]),
-                const SizedBox(height: 14),
-                OutlinedButton(onPressed: _noop, child: const Text('Quản lý tài khoản')),
+                profile,
+                const SizedBox(height: 16),
+                action,
               ],
             );
           }
 
           return Row(
             children: [
-              avatar,
+              Expanded(child: profile),
               const SizedBox(width: 16),
-              identity,
-              const SizedBox(width: 12),
-              OutlinedButton(onPressed: _noop, child: const Text('Quản lý')),
+              action,
             ],
           );
         },
@@ -125,26 +229,26 @@ class _AccountCard extends StatelessWidget {
   }
 }
 
-class _SettingsAvatar extends StatelessWidget {
-  const _SettingsAvatar();
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 74,
-      height: 74,
+      width: 84,
+      height: 84,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const LinearGradient(colors: [AppColors.purple, AppColors.blue]),
-        border: Border.all(color: AppColors.purpleBright, width: 2),
+        gradient: const LinearGradient(colors: [Color(0xFF32406B), Color(0xFF0D1525)]),
+        border: Border.all(color: Colors.white.withOpacity(0.16), width: 1.6),
       ),
-      child: const Icon(Icons.person_rounded, size: 48),
+      child: const Icon(Icons.person_rounded, color: Colors.white, size: 52),
     );
   }
 }
 
-class _AccountStats extends StatelessWidget {
-  const _AccountStats();
+class _AccountStatsPanel extends StatelessWidget {
+  const _AccountStatsPanel();
 
   @override
   Widget build(BuildContext context) {
@@ -157,22 +261,136 @@ class _AccountStats extends StatelessWidget {
     ];
 
     return GamePanel(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth < 650 ? (constraints.maxWidth - 12) / 2 : (constraints.maxWidth - 48) / 5;
-          return Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: stats.map((stat) => SizedBox(width: width, child: Column(children: [Text(stat.$1, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)), const SizedBox(height: 4), Text(stat.$2, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 11))]))).toList(growable: false),
-          );
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('THỐNG KÊ TÀI KHOẢN', style: TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 760 ? 5 : 2;
+              final width = (constraints.maxWidth - ((columns - 1) * 12)) / columns;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: stats
+                    .map(
+                      (stat) => SizedBox(
+                        width: width,
+                        child: Column(
+                          children: [
+                            Text(stat.$1, style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900)),
+                            const SizedBox(height: 6),
+                            Text(stat.$2, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ToggleTile extends StatelessWidget {
-  const _ToggleTile({required this.icon, required this.title, required this.subtitle, required this.value, required this.onChanged});
+class _QuickSettingsGrid extends StatelessWidget {
+  const _QuickSettingsGrid({
+    required this.dailyGoal,
+    required this.reviewReminder,
+    required this.autoAudio,
+    required this.furiganaSmart,
+    required this.onDailyGoalChanged,
+    required this.onReviewReminderChanged,
+    required this.onAutoAudioChanged,
+    required this.onFuriganaSmartChanged,
+  });
+
+  final bool dailyGoal;
+  final bool reviewReminder;
+  final bool autoAudio;
+  final bool furiganaSmart;
+  final ValueChanged<bool> onDailyGoalChanged;
+  final ValueChanged<bool> onReviewReminderChanged;
+  final ValueChanged<bool> onAutoAudioChanged;
+  final ValueChanged<bool> onFuriganaSmartChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return GamePanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('THIẾT LẬP NHANH', style: TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 900 ? 4 : 2;
+              final width = (constraints.maxWidth - ((columns - 1) * 12)) / columns;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: width,
+                    child: _QuickSettingCard(
+                      icon: Icons.timer_rounded,
+                      title: 'Mục tiêu hằng ngày',
+                      subtitle: '60 phút',
+                      value: dailyGoal,
+                      onChanged: onDailyGoalChanged,
+                    ),
+                  ),
+                  SizedBox(
+                    width: width,
+                    child: _QuickSettingCard(
+                      icon: Icons.notifications_active_rounded,
+                      title: 'Nhắc nhở ôn tập',
+                      subtitle: reviewReminder ? 'Bật' : 'Tắt',
+                      value: reviewReminder,
+                      onChanged: onReviewReminderChanged,
+                    ),
+                  ),
+                  SizedBox(
+                    width: width,
+                    child: _QuickSettingCard(
+                      icon: Icons.wifi_rounded,
+                      title: 'Tự động phát audio',
+                      subtitle: autoAudio ? 'Chỉ Wi-Fi' : 'Tắt',
+                      value: autoAudio,
+                      onChanged: onAutoAudioChanged,
+                    ),
+                  ),
+                  SizedBox(
+                    width: width,
+                    child: _QuickSettingCard(
+                      icon: Icons.translate_rounded,
+                      title: 'Hiển thị Furigana',
+                      subtitle: furiganaSmart ? 'Thông minh' : 'Ẩn',
+                      value: furiganaSmart,
+                      onChanged: onFuriganaSmartChanged,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickSettingCard extends StatelessWidget {
+  const _QuickSettingCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
 
   final IconData icon;
   final String title;
@@ -182,39 +400,37 @@ class _ToggleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      secondary: Icon(icon, color: AppColors.purpleBright),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text(subtitle),
-      value: value,
-      onChanged: onChanged,
-    );
-  }
-}
-
-class _SettingsMenu extends StatelessWidget {
-  const _SettingsMenu();
-
-  @override
-  Widget build(BuildContext context) {
-    const items = [
-      (Icons.school_rounded, 'Học tập'),
-      (Icons.record_voice_over_rounded, 'Âm thanh & Giọng nói'),
-      (Icons.palette_rounded, 'Giao diện'),
-      (Icons.language_rounded, 'Ngôn ngữ'),
-      (Icons.download_rounded, 'Dữ liệu & Tải xuống'),
-      (Icons.lock_rounded, 'Quyền riêng tư'),
-      (Icons.info_rounded, 'Giới thiệu'),
-    ];
-
-    return GamePanel(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundRaised.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderSoft),
+      ),
       child: Column(
-        children: items.map((item) => ListTile(contentPadding: EdgeInsets.zero, leading: Icon(item.$1, color: AppColors.textMuted), title: Text(item.$2, style: const TextStyle(fontWeight: FontWeight.w600)), trailing: const Icon(Icons.chevron_right_rounded), onTap: _noop)).toList(growable: false),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.panelAlt,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: AppColors.cyan, size: 18),
+              ),
+              const Spacer(),
+              Switch(value: value, onChanged: onChanged),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(subtitle, style: const TextStyle(color: AppColors.textMuted)),
+        ],
       ),
     );
   }
 }
-
-void _noop() {}
